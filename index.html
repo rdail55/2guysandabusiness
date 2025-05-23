@@ -25,6 +25,10 @@
       text-align: center;
     }
 
+    #inGameVolume {
+      margin: 5px 0;
+    }
+
     canvas {
       background: #111;
       border: 2px solid white;
@@ -61,6 +65,7 @@
 </head>
 <body>
   <h1>We don't actually have a business yet, so you can play Pong while you wait.</h1>
+
   <div id="userPrompt">
     <label for="username">Enter your name: </label>
     <input type="text" id="username" />
@@ -78,13 +83,17 @@
     <input type="range" id="volume" min="0" max="1" step="0.1" value="0.5" />
   </div>
 
+  <div id="inGameVolume" style="display:none;">
+    <label for="volumeLive">🔊 Volume: </label>
+    <input type="range" id="volumeLive" min="0" max="1" step="0.1" value="0.5" />
+  </div>
+
   <div id="scoreboard">
     <div class="score">Player: <span id="playerScore">0</span> (Games: <span id="playerGames">0</span>)</div>
     <div class="score">Computer: <span id="computerScore">0</span> (Games: <span id="computerGames">0</span>)</div>
   </div>
 
   <div id="winnerBanner"></div>
-
   <canvas id="pong" width="600" height="400"></canvas>
 
   <div id="leaderboard">
@@ -92,15 +101,18 @@
     <ul id="highScores"></ul>
   </div>
 
-  <audio id="pingSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" preload="auto"></audio>
-  <audio id="scoreSound" src="https://actions.google.com/sounds/v1/cartoon/concussive_hit_guitar_boing.ogg" preload="auto"></audio>
+  <!-- Retro-style sound effects -->
+  <audio id="pingSound" src="https://freesound.org/data/previews/26/26818_512123-lq.mp3" preload="auto"></audio>
+  <audio id="scoreSound" src="https://freesound.org/data/previews/331/331912_3248244-lq.mp3" preload="auto"></audio>
 
   <script>
     const canvas = document.getElementById("pong");
     const context = canvas.getContext("2d");
     const volumeSlider = document.getElementById("volume");
+    const volumeLive = document.getElementById("volumeLive");
     const pingSound = document.getElementById("pingSound");
     const scoreSound = document.getElementById("scoreSound");
+
     let difficulty = 0.08;
     let username = "";
     let playerScore = 0, computerScore = 0;
@@ -126,9 +138,16 @@
       difficulty = parseFloat(document.getElementById("difficulty").value);
       document.getElementById("userPrompt").style.display = "none";
       document.getElementById("settings").style.display = "none";
+      document.getElementById("inGameVolume").style.display = "block";
+      volumeLive.value = volumeSlider.value;
       canvas.style.display = "block";
       updateLeaderboard();
     }
+
+    volumeLive.addEventListener("input", () => {
+      pingSound.volume = volumeLive.value;
+      scoreSound.volume = volumeLive.value;
+    });
 
     function drawRect(x, y, w, h, color) {
       context.fillStyle = color;
@@ -181,7 +200,7 @@
 
       if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
         ball.velocityY = -ball.velocityY;
-        pingSound.volume = volumeSlider.value;
+        pingSound.volume = volumeLive.value;
         pingSound.play();
       }
 
@@ -195,18 +214,18 @@
         ball.velocityX = direction * ball.speed * Math.cos(angleRad);
         ball.velocityY = ball.speed * Math.sin(angleRad);
         ball.speed += 0.5;
-        pingSound.volume = volumeSlider.value;
+        pingSound.volume = volumeLive.value;
         pingSound.play();
       }
 
       if (ball.x - ball.radius < 0) {
         computerScore++;
-        scoreSound.volume = volumeSlider.value;
+        scoreSound.volume = volumeLive.value;
         scoreSound.play();
         checkGameOver();
       } else if (ball.x + ball.radius > canvas.width) {
         playerScore++;
-        scoreSound.volume = volumeSlider.value;
+        scoreSound.volume = volumeLive.value;
         scoreSound.play();
         checkGameOver();
       }
