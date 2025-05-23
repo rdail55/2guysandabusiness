@@ -1,150 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Pong While You Wait</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Play Chess While You Wait</title>
+  <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs/dist/chessboard-1.0.0.min.css" />
   <style>
     body {
-      margin: 0;
-      padding: 0;
-      background: black;
+      background: #111;
       color: white;
       font-family: monospace;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      height: 100vh;
+      text-align: center;
+      padding: 20px;
     }
 
     h1 {
-      margin: 20px;
+      margin-bottom: 20px;
     }
 
-    canvas {
-      background: #111;
-      border: 2px solid white;
+    #board {
+      width: 400px;
+      margin: auto;
     }
   </style>
 </head>
 <body>
-  <h1>We don't actually have a business yet, so you can play Pong while you wait.</h1>
-  <canvas id="pong" width="600" height="400"></canvas>
+  <h1>We don't actually have a business yet, so you can play chess while you wait.</h1>
+  <div id="board"></div>
+  <p id="status"></p>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+  <script src="https://unpkg.com/@chrisoakman/chessboardjs/dist/chessboard-1.0.0.min.js"></script>
   <script>
-    const canvas = document.getElementById("pong");
-    const context = canvas.getContext("2d");
-
-    // Create the paddle
-    const paddleWidth = 10, paddleHeight = 100;
-    const player = { x: 0, y: canvas.height / 2 - paddleHeight / 2, width: paddleWidth, height: paddleHeight, color: "white", score: 0 };
-    const computer = { x: canvas.width - paddleWidth, y: canvas.height / 2 - paddleHeight / 2, width: paddleWidth, height: paddleHeight, color: "white", score: 0 };
-
-    // Create the ball
-    const ball = {
-      x: canvas.width / 2,
-      y: canvas.height / 2,
-      radius: 7,
-      speed: 5,
-      velocityX: 5,
-      velocityY: 5,
-      color: "white"
-    };
-
-    // Draw function
-    function drawRect(x, y, w, h, color) {
-      context.fillStyle = color;
-      context.fillRect(x, y, w, h);
-    }
-
-    function drawCircle(x, y, r, color) {
-      context.fillStyle = color;
-      context.beginPath();
-      context.arc(x, y, r, 0, Math.PI * 2, false);
-      context.closePath();
-      context.fill();
-    }
-
-    function drawText(text, x, y) {
-      context.fillStyle = "white";
-      context.font = "32px monospace";
-      context.fillText(text, x, y);
-    }
-
-    // Control the player paddle
-    canvas.addEventListener("mousemove", evt => {
-      player.y = evt.clientY - paddleHeight / 2 - canvas.getBoundingClientRect().top;
+    const board = Chessboard('board', {
+      draggable: true,
+      position: 'start',
+      onDrop: onDrop
     });
 
-    // Collision detection
-    function collision(b, p) {
-      return b.x < p.x + p.width && b.x + b.radius > p.x &&
-             b.y < p.y + p.height && b.y + b.radius > p.y;
+    const game = new Chess();
+
+    function onDrop(source, target) {
+      const move = game.move({
+        from: source,
+        to: target,
+        promotion: 'q' // always promote to a queen
+      });
+
+      if (move === null) return 'snapback';
+
+      updateStatus();
     }
 
-    // Reset ball
-    function resetBall() {
-      ball.x = canvas.width / 2;
-      ball.y = canvas.height / 2;
-      ball.velocityX = -ball.velocityX;
-      ball.speed = 5;
-    }
+    function updateStatus() {
+      let status = '';
 
-    // Update game objects
-    function update() {
-      ball.x += ball.velocityX;
-      ball.y += ball.velocityY;
-
-      // AI movement
-      computer.y += ((ball.y - (computer.y + paddleHeight / 2))) * 0.1;
-
-      // Ball collision with top/bottom
-      if (ball.y + ball.radius > canvas.height || ball.y - ball.radius < 0) {
-        ball.velocityY = -ball.velocityY;
+      if (game.in_checkmate()) {
+        status = 'Checkmate! Game over.';
+      } else if (game.in_draw()) {
+        status = 'Draw!';
+      } else {
+        status = (game.turn() === 'w' ? 'White' : 'Black') + ' to move';
+        if (game.in_check()) {
+          status += ', in check';
+        }
       }
 
-      // Check collision with player or computer
-      let paddle = (ball.x < canvas.width / 2) ? player : computer;
-
-      if (collision(ball, paddle)) {
-        let collidePoint = ball.y - (paddle.y + paddle.height / 2);
-        collidePoint = collidePoint / (paddle.height / 2);
-        let angleRad = (Math.PI / 4) * collidePoint;
-
-        let direction = (ball.x < canvas.width / 2) ? 1 : -1;
-        ball.velocityX = direction * ball.speed * Math.cos(angleRad);
-        ball.velocityY = ball.speed * Math.sin(angleRad);
-        ball.speed += 0.3;
-      }
-
-      // Score update
-      if (ball.x - ball.radius < 0) {
-        computer.score++;
-        resetBall();
-      } else if (ball.x + ball.radius > canvas.width) {
-        player.score++;
-        resetBall();
-      }
+      document.getElementById('status').textContent = status;
     }
 
-    // Render function
-    function render() {
-      drawRect(0, 0, canvas.width, canvas.height, "#111");
-      drawText(player.score, canvas.width / 4, 50);
-      drawText(computer.score, 3 * canvas.width / 4, 50);
-      drawRect(player.x, player.y, player.width, player.height, player.color);
-      drawRect(computer.x, computer.y, computer.width, computer.height, computer.color);
-      drawCircle(ball.x, ball.y, ball.radius, ball.color);
-    }
-
-    // Game loop
-    function game() {
-      update();
-      render();
-    }
-
-    setInterval(game, 1000 / 60);
+    updateStatus();
   </script>
 </body>
 </html>
