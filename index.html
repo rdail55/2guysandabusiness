@@ -11,42 +11,100 @@
       background: black;
       color: white;
       font-family: monospace;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      text-align: center;
     }
 
     h1 {
+      margin: 10px;
+    }
+
+    #userPrompt {
       margin: 20px;
     }
 
     canvas {
       background: #111;
       border: 2px solid white;
+      display: none;
+    }
+
+    #scoreboard {
+      display: flex;
+      justify-content: space-around;
+      margin: 10px;
+    }
+
+    .score {
+      font-size: 18px;
+    }
+
+    #winnerBanner {
+      font-size: 24px;
+      color: yellow;
+      margin: 10px;
+    }
+
+    #leaderboard {
+      margin-top: 20px;
+      font-size: 16px;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
     }
   </style>
 </head>
 <body>
-  <h1>We don't actually have a business yet, so you can play Pong while you wait.</h1>
+  <h1>Pong While You Wait</h1>
+  <div id="userPrompt">
+    <label for="username">Enter your name: </label>
+    <input type="text" id="username" />
+    <button onclick="startGame()">Start Game</button>
+  </div>
+
+  <div id="scoreboard">
+    <div class="score">Player: <span id="playerScore">0</span> (Games: <span id="playerGames">0</span>)</div>
+    <div class="score">Computer: <span id="computerScore">0</span> (Games: <span id="computerGames">0</span>)</div>
+  </div>
+
+  <div id="winnerBanner"></div>
+
   <canvas id="pong" width="600" height="400"></canvas>
+
+  <div id="leaderboard">
+    <h3>🏆 Leaderboard (Most Games Won)</h3>
+    <ul id="highScores"></ul>
+  </div>
 
   <script>
     const canvas = document.getElementById("pong");
     const context = canvas.getContext("2d");
+    let username = "";
+    let playerScore = 0, computerScore = 0;
+    let playerGames = 0, computerGames = 0;
+    let highScores = JSON.parse(localStorage.getItem("pongHighScores") || "{}");
 
     const paddleWidth = 10, paddleHeight = 100;
-    const player = { x: 0, y: canvas.height/2 - paddleHeight/2, width: paddleWidth, height: paddleHeight, color: "white", score: 0 };
-    const computer = { x: canvas.width - paddleWidth, y: canvas.height/2 - paddleHeight/2, width: paddleWidth, height: paddleHeight, color: "white", score: 0 };
-
+    const player = { x: 0, y: 150, width: paddleWidth, height: paddleHeight, color: "white" };
+    const computer = { x: 590, y: 150, width: paddleWidth, height: paddleHeight, color: "white" };
     const ball = {
-      x: canvas.width/2,
-      y: canvas.height/2,
+      x: 300,
+      y: 200,
       radius: 8,
       speed: 5,
       velocityX: 5,
       velocityY: 5,
       color: "white"
     };
+
+    function startGame() {
+      username = document.getElementById("username").value.trim();
+      if (!username) return alert("Please enter your name.");
+      document.getElementById("userPrompt").style.display = "none";
+      canvas.style.display = "block";
+      updateLeaderboard();
+    }
 
     function drawRect(x, y, w, h, color) {
       context.fillStyle = color;
@@ -56,7 +114,7 @@
     function drawCircle(x, y, r, color) {
       context.fillStyle = color;
       context.beginPath();
-      context.arc(x, y, r, 0, Math.PI*2, false);
+      context.arc(x, y, r, 0, Math.PI * 2, false);
       context.closePath();
       context.fill();
     }
@@ -77,8 +135,8 @@
 
     function draw() {
       drawRect(0, 0, canvas.width, canvas.height, "#111");
-      drawText(player.score, canvas.width / 4, 50);
-      drawText(computer.score, 3 * canvas.width / 4, 50);
+      drawText(playerScore, canvas.width / 4, 50);
+      drawText(computerScore, 3 * canvas.width / 4, 50);
       drawRect(player.x, player.y, player.width, player.height, player.color);
       drawRect(computer.x, computer.y, computer.width, computer.height, computer.color);
       drawCircle(ball.x, ball.y, ball.radius, ball.color);
@@ -95,8 +153,7 @@
       ball.x += ball.velocityX;
       ball.y += ball.velocityY;
 
-      // AI
-      computer.y += ((ball.y - (computer.y + paddleHeight/2))) * 0.08;
+      computer.y += ((ball.y - (computer.y + paddleHeight / 2))) * 0.08;
 
       if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
         ball.velocityY = -ball.velocityY;
@@ -106,22 +163,59 @@
 
       if (collision(ball, paddle)) {
         let collidePoint = ball.y - (paddle.y + paddle.height / 2);
-        collidePoint = collidePoint / (paddle.height / 2);
+        collidePoint /= paddle.height / 2;
         let angleRad = (Math.PI / 4) * collidePoint;
         let direction = (ball.x < canvas.width / 2) ? 1 : -1;
-
         ball.velocityX = direction * ball.speed * Math.cos(angleRad);
         ball.velocityY = ball.speed * Math.sin(angleRad);
         ball.speed += 0.5;
       }
 
-      // Score logic AFTER checking collision
       if (ball.x - ball.radius < 0) {
-        computer.score++;
-        resetBall();
+        computerScore++;
+        checkGameOver();
       } else if (ball.x + ball.radius > canvas.width) {
-        player.score++;
-        resetBall();
+        playerScore++;
+        checkGameOver();
+      }
+    }
+
+    function checkGameOver() {
+      if (playerScore >= 11) {
+        document.getElementById("winnerBanner").textContent = username + " wins the game!";
+        playerGames++;
+        updateScores();
+        updateLeaderboard();
+        playerScore = computerScore = 0;
+      } else if (computerScore >= 11) {
+        document.getElementById("winnerBanner").textContent = "Computer wins the game!";
+        computerGames++;
+        updateScores();
+        playerScore = computerScore = 0;
+      }
+      resetBall();
+    }
+
+    function updateScores() {
+      document.getElementById("playerScore").textContent = playerScore;
+      document.getElementById("computerScore").textContent = computerScore;
+      document.getElementById("playerGames").textContent = playerGames;
+      document.getElementById("computerGames").textContent = computerGames;
+
+      if (username) {
+        highScores[username] = (highScores[username] || 0) + 1;
+        localStorage.setItem("pongHighScores", JSON.stringify(highScores));
+      }
+    }
+
+    function updateLeaderboard() {
+      const list = document.getElementById("highScores");
+      list.innerHTML = "";
+      const sorted = Object.entries(highScores).sort((a, b) => b[1] - a[1]);
+      for (let [name, score] of sorted.slice(0, 5)) {
+        const li = document.createElement("li");
+        li.textContent = `${name}: ${score} wins`;
+        list.appendChild(li);
       }
     }
 
@@ -130,12 +224,14 @@
       player.y = evt.clientY - rect.top - paddleHeight / 2;
     });
 
-    function game() {
-      update();
-      draw();
+    function gameLoop() {
+      if (canvas.style.display === "block") {
+        update();
+        draw();
+      }
     }
 
-    setInterval(game, 1000 / 60);
+    setInterval(gameLoop, 1000 / 60);
   </script>
 </body>
 </html>
