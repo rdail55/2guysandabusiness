@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Play Chess While You Wait</title>
-  <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs/dist/chessboard-1.0.0.min.css" />
+  <link rel="stylesheet" href="chessboard-1.0.0.min.css" />
   <style>
     body {
       background: #111;
@@ -29,8 +29,8 @@
   <div id="board"></div>
   <p id="status"></p>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
-  <script src="https://unpkg.com/@chrisoakman/chessboardjs/dist/chessboard-1.0.0.min.js"></script>
+  <script src="js/chess.min.js"></script>
+  <script src="js/chessboard-1.0.0.min.js"></script>
   <script>
     const board = Chessboard('board', {
       draggable: true,
@@ -60,8 +60,6 @@
 
       if (move === null) return 'snapback';
       updateStatus();
-
-      // AI plays after player's valid move
       setTimeout(makeBestMove, 250);
     }
 
