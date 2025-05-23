@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Pong While You Wait</title>
+  <title>We don't actually have a business yet</title>
   <style>
     body {
       margin: 0;
@@ -11,15 +11,18 @@
       background: black;
       color: white;
       font-family: monospace;
-      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     h1 {
       margin: 10px;
     }
 
-    #userPrompt {
-      margin: 20px;
+    #userPrompt, #settings {
+      margin: 10px;
+      text-align: center;
     }
 
     canvas {
@@ -31,7 +34,7 @@
     #scoreboard {
       display: flex;
       justify-content: space-around;
-      margin: 10px;
+      width: 600px;
     }
 
     .score {
@@ -45,8 +48,9 @@
     }
 
     #leaderboard {
-      margin-top: 20px;
+      margin-top: 10px;
       font-size: 16px;
+      text-align: center;
     }
 
     ul {
@@ -56,11 +60,22 @@
   </style>
 </head>
 <body>
-  <h1>Pong While You Wait</h1>
+  <h1>We don't actually have a business yet, so you can play Pong while you wait.</h1>
   <div id="userPrompt">
     <label for="username">Enter your name: </label>
     <input type="text" id="username" />
     <button onclick="startGame()">Start Game</button>
+  </div>
+
+  <div id="settings">
+    <label for="difficulty">Difficulty: </label>
+    <select id="difficulty">
+      <option value="0.05">Easy</option>
+      <option value="0.08" selected>Medium</option>
+      <option value="0.12">Hard</option>
+    </select>
+    <label for="volume">Sound Volume: </label>
+    <input type="range" id="volume" min="0" max="1" step="0.1" value="0.5" />
   </div>
 
   <div id="scoreboard">
@@ -77,9 +92,16 @@
     <ul id="highScores"></ul>
   </div>
 
+  <audio id="pingSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" preload="auto"></audio>
+  <audio id="scoreSound" src="https://actions.google.com/sounds/v1/cartoon/concussive_hit_guitar_boing.ogg" preload="auto"></audio>
+
   <script>
     const canvas = document.getElementById("pong");
     const context = canvas.getContext("2d");
+    const volumeSlider = document.getElementById("volume");
+    const pingSound = document.getElementById("pingSound");
+    const scoreSound = document.getElementById("scoreSound");
+    let difficulty = 0.08;
     let username = "";
     let playerScore = 0, computerScore = 0;
     let playerGames = 0, computerGames = 0;
@@ -101,7 +123,9 @@
     function startGame() {
       username = document.getElementById("username").value.trim();
       if (!username) return alert("Please enter your name.");
+      difficulty = parseFloat(document.getElementById("difficulty").value);
       document.getElementById("userPrompt").style.display = "none";
+      document.getElementById("settings").style.display = "none";
       canvas.style.display = "block";
       updateLeaderboard();
     }
@@ -153,10 +177,12 @@
       ball.x += ball.velocityX;
       ball.y += ball.velocityY;
 
-      computer.y += ((ball.y - (computer.y + paddleHeight / 2))) * 0.08;
+      computer.y += ((ball.y - (computer.y + paddleHeight / 2))) * difficulty;
 
       if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
         ball.velocityY = -ball.velocityY;
+        pingSound.volume = volumeSlider.value;
+        pingSound.play();
       }
 
       let paddle = (ball.x < canvas.width / 2) ? player : computer;
@@ -169,13 +195,19 @@
         ball.velocityX = direction * ball.speed * Math.cos(angleRad);
         ball.velocityY = ball.speed * Math.sin(angleRad);
         ball.speed += 0.5;
+        pingSound.volume = volumeSlider.value;
+        pingSound.play();
       }
 
       if (ball.x - ball.radius < 0) {
         computerScore++;
+        scoreSound.volume = volumeSlider.value;
+        scoreSound.play();
         checkGameOver();
       } else if (ball.x + ball.radius > canvas.width) {
         playerScore++;
+        scoreSound.volume = volumeSlider.value;
+        scoreSound.play();
         checkGameOver();
       }
     }
